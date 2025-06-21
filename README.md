@@ -3,7 +3,42 @@ sudo apt update
 sudo apt upgrade
 sudo apt install nginx
 
+
+#Find the Nginx Folder
+cd /etc/nginx
+ls -l
+
+nginx.conf (main config)
+
+sites-available/ – where you write your site config
+
+sites-enabled/ – contains symlinks to active sites
+
+conf.d/ – sometimes used for extra config
+
+snippets/ – for reusable configs
+
+
 sudo nano /etc/nginx/sites-available/odoo18
+
+#View Your Nginx Site Configs
+cd /etc/nginx/sites-available
+ls -l
+cd /etc/nginx/sites-enabled
+ls -l
+
+#Find/Create SSL Folder
+cd /etc/ssl
+ls -l
+sudo mkdir -p /etc/ssl/nginx
+cd /etc/ssl/nginx
+This folder will contain:
+certificate.pem → your SSL certificate
+key.pem → your SSL key
+
+
+#Configure Nginx for SSL (HTTPS)
+sudo nano /etc/nginx/sites-available/odoo
 
 # Odoo Server
 upstream odoo {
@@ -17,70 +52,41 @@ upstream odoochat {
 # HTTP -> HTTPS
 server {
     listen 80;
-    server_name familysportcenter.net www.familysportcenter.net;
+    server_name www.familysportcenter.net;
     return 301 https://$server_name$request_uri;
 }
 
+
 # Main server
 server {
-    listen 443 ssl http2;
-    server_name familysportcenter.net www.familysportcenter.net;
+    listen 443 ssl;
+    server_name www.familysportcenter.net;
 
-    # SSL parameters
-    ssl_certificate /etc/letsencrypt/live/familysportcenter.net/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/familysportcenter.net/privkey.pem;
-    ssl_session_timeout 1d;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_tickets off;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
-    ssl_prefer_server_ciphers off;
-    ssl_stapling on;
-    ssl_stapling_verify on;
-    ssl_dhparam /etc/ssl/certs/dhparam.pem;
+    ssl_certificate /etc/ssl/nginx/certificate.pem;
+    ssl_certificate_key /etc/ssl/nginx/key.pem;
 
-    # Add headers
-    add_header X-Content-Type-Options nosniff;
-    add_header X-XSS-Protection "1; mode=block";
-    add_header X-Frame-Options "SAMEORIGIN";
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+    access_log /var/log/nginx/odoo_access.log;
+    error_log /var/log/nginx/odoo_error.log;
 
-    # Proxy settings
-    proxy_read_timeout 720s;
-    proxy_connect_timeout 720s;
-    proxy_send_timeout 720s;
-    proxy_set_header X-Forwarded-Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
-
-    # Log files
-    access_log /var/log/nginx/odoo.access.log;
-    error_log /var/log/nginx/odoo.error.log;
-
-    # Handle longpoll requests
     location /longpolling {
-        proxy_pass http://odoochat;
+        proxy_pass http://127.0.0.1:8072;
+        proxy_connect_timeout 3600;
+        proxy_read_timeout 3600;
+        proxy_send_timeout 3600;
+        send_timeout 3600;
     }
 
-    # Handle main requests
     location / {
-        proxy_redirect off;
-        proxy_pass http://odoo;
+        proxy_pass http://127.0.0.1:8016;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
-    # Cache static files
-    location ~* /web/static/ {
-        proxy_cache_valid 200 60m;
-        proxy_buffering on;
-        expires 864000;
-        proxy_pass http://odoo;
-    }
-
-    # Gzip
-    gzip_types text/css text/less text/plain text/xml application/xml application/json application/javascript;
     gzip on;
+    gzip_min_length 1000;
 }
+
 
 
 
