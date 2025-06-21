@@ -40,6 +40,8 @@ key.pem → your SSL key
 #Configure Nginx for SSL (HTTPS)
 sudo nano /etc/nginx/sites-available/odoo
 
+
+
 # Odoo Server
 upstream odoo {
     server 127.0.0.1:8069;
@@ -88,14 +90,36 @@ server {
 }
 
 
+#if you want Remove default Nginx configurations
+sudo rm /etc/nginx/sites-enabled/odoo
+sudo rm /etc/nginx/sites-available/odoo
+
+and for log in this folder 
+ ssl_certificate /etc/ssl/nginx/certificate.pem;
+    ssl_certificate_key /etc/ssl/nginx/key.pem;
+
+    access_log /var/log/nginx/odoo_access.log;
+    error_log /var/log/nginx/odoo_error.log;
 
 
-
-sudo ln -s /etc/nginx/sites-available/odoo18 /etc/nginx/sites-enabled/odoo18
-
-
+#Enable Your Nginx Site
+sudo ln -s /etc/nginx/sites-available/odoo /etc/nginx/sites-enabled/odoo
 sudo nginx -t
 sudo service nginx restart
+sudo systemctl restart nginx
+
+
+
+#📁 Summary of Folders You Learned:
+| Folder                       | Purpose                                    |
+| ---------------------------- | ------------------------------------------ |
+| `/etc/nginx`                 | Main nginx config folder                   |
+| `/etc/nginx/sites-available` | Where you define new sites                 |
+| `/etc/nginx/sites-enabled`   | Active sites (symlinked from available)    |
+| `/etc/ssl/nginx`             | Custom location for your self-signed certs |
+| `/var/log/nginx/`            | Stores access and error logs               |
+
+
 
 
 
