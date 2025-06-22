@@ -40,6 +40,71 @@ key.pem → your SSL key
 #Configure Nginx for SSL (HTTPS)
 sudo nano /etc/nginx/sites-available/odoo
 
+----------------------------------
+
+install cretbot+nginx plugin
+sudo apt update
+sudo apt install certbot python3-certbot-nginx -y
+
+agar domain keshae habu la enabild rashe kaawa awa install bka dwae dubara file odoo raese la enabled install bka
+
+sudo nano /etc/nginx/sites-available/certbot_temp
+
+server {
+    listen 80;
+    server_name familysportcenter.net www.familysportcenter.net;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+    }
+}
+
+
+sudo mkdir -p /var/www/letsencrypt
+sudo chown -R www-data:www-data /var/www/letsencrypt
+
+sudo rm /etc/nginx/sites-enabled/odoo
+sudo ln -sf /etc/nginx/sites-available/certbot_temp /etc/nginx/sites-enabled/
+
+sudo nginx -t
+sudo systemctl restart nginx
+sudo systemctl restart odoo
+
+
+pashan run cretbot bka
+sudo certbot certonly --webroot -w /var/www/letsencrypt -d familysportcenter.net -d www.familysportcenter.net 
+dacheta aw locationa aw locationa la config file odoo dadane e enable u available  lo certifcation
+/etc/letsencrypt/live/familysportcenter.net/
+ls -l /etc/letsencrypt/live/familysportcenter.net 
+awana dabini
+cert.pem
+chain.pem
+fullchain.pem
+privkey.pem
+
+pashan Re-enable your odoo config bka 
+sudo ln -sf /etc/nginx/sites-available/odoo /etc/nginx/sites-enabled/odoo
+
+
+pashan certbot confi rashkawa 
+sudo rm /etc/nginx/sites-enabled/certbot_temp
+sudo nginx -t
+sudo systemctl restart nginx
+sudo systemctl restart odoo
+
+ bocheck krdne porte odoo ka la odoo config ta3ref krawa 
+ sudo netstat -tuln | grep 8069
+
+ location / {
+    proxy_pass http://127.0.0.1:8016/;
+}
+
+
+
+
+find the the domain in which location 
+grep -r "familysportcenter.net" /etc/nginx/sites-available
+after than
 
 
 # Odoo Server
@@ -64,8 +129,9 @@ server {
     listen 443 ssl;
     server_name www.familysportcenter.net;
 
-    ssl_certificate /etc/ssl/nginx/certificate.pem;
-    ssl_certificate_key /etc/ssl/nginx/key.pem;
+    ssl_certificate /etc/letsencrypt/live/familysportcenter.net/fullchain.pem
+
+    ssl_certificate_key /etc/letsencrypt/live/familysportcenter.net/privkey.pem;
 
     access_log /var/log/nginx/odoo_access.log;
     error_log /var/log/nginx/odoo_error.log;
@@ -79,7 +145,7 @@ server {
     }
 
     location / {
-        proxy_pass http://127.0.0.1:8016;
+        proxy_pass http://127.0.0.1:8069;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -89,7 +155,7 @@ server {
     gzip_min_length 1000;
 }
 
-
+----------------------------------------
 #if you want Remove default Nginx configurations
 sudo rm /etc/nginx/sites-enabled/odoo
 sudo rm /etc/nginx/sites-available/odoo
